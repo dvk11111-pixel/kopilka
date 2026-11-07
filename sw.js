@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kopilka-family-v16-final';
+const CACHE_NAME = 'kopilka-family-v17-final';
 const APP_FILES = [
   './',
   './index.html',
