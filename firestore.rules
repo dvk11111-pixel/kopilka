@@ -106,12 +106,13 @@ service cloud.firestore {
           && request.resource.data.payload.keys().hasOnly([
             'tickets', 'wins', 'gamePoints', 'wordCleanCounts', 'roundHistory',
             'roundNumber', 'hintCount', 'cleanStreak', 'gameSymbol',
-            'languageProgress', 'selectedGameLang', 'nextId', 'subjects',
+            'languageProgress', 'selectedGameLang', 'nextId',
             'requests', 'schoolPromptDate', 'homeworkSubmitted', 'homeworkFailed',
             'houseworkSubmitted', 'houseworkFailed', 'dailyDoneDate',
             'pendingCollections', 'symbolCounts', 'completedRounds',
             'nonGrammarRoundCount', 'pendingMoneyCelebrations',
-            'pendingPrizeClaims', 'prizeRequests', 'schoolWeekRewards', 'round'
+            'pendingPrizeClaims', 'prizeRequests', 'round',
+            'spentTicketIds', 'collectedCollectionIds', 'collectedMoneyIds', 'cashoutEvents'
           ])
           && request.resource.data.revision is int
           && request.resource.data.updatedBy == request.auth.uid;
