@@ -85,15 +85,36 @@ service cloud.firestore {
         allow delete: if isOwner(familyId);
       }
 
-      // Temporary legacy state access: only Dad may write the monolithic payload.
-      // Son reads production data, but Son writes stay disabled until the payload is split
-      // into separately validated account, request, and progress documents.
+      // Parent-owned authoritative snapshot. Son can read production, never write it.
       match /spaces/{space}/state/{stateId} {
         allow get: if stateId == 'main'
           && (isOwner(familyId) || (space == 'production' && isSon(familyId)));
         allow list: if false;
         allow create, update: if stateId == 'main' && isOwner(familyId)
           && (space == 'production' || space == 'test');
+        allow delete: if false;
+      }
+
+      // Son-owned inbox/outbox is physically separate from parent-controlled data.
+      // Values here are client-reported and must not be treated as server-verified rewards.
+      match /sonState/{stateId} {
+        allow get: if stateId == 'main' && (isOwner(familyId) || isSon(familyId));
+        allow list: if false;
+        allow create, update: if stateId == 'main' && isSon(familyId)
+          && request.resource.data.keys().hasOnly(['payload', 'revision', 'updatedAt', 'updatedBy'])
+          && request.resource.data.payload is map
+          && request.resource.data.payload.keys().hasOnly([
+            'tickets', 'wins', 'gamePoints', 'wordCleanCounts', 'roundHistory',
+            'roundNumber', 'hintCount', 'cleanStreak', 'gameSymbol',
+            'languageProgress', 'selectedGameLang', 'nextId', 'subjects',
+            'requests', 'schoolPromptDate', 'homeworkSubmitted', 'homeworkFailed',
+            'houseworkSubmitted', 'houseworkFailed', 'dailyDoneDate',
+            'pendingCollections', 'symbolCounts', 'completedRounds',
+            'nonGrammarRoundCount', 'pendingMoneyCelebrations',
+            'pendingPrizeClaims', 'prizeRequests', 'schoolWeekRewards', 'round'
+          ])
+          && request.resource.data.revision is int
+          && request.resource.data.updatedBy == request.auth.uid;
         allow delete: if false;
       }
     }
