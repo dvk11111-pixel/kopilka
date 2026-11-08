@@ -1,6 +1,6 @@
 # Version 21 — Firebase migration
 
-Status: implementation is committed to the isolated branch `v21-firebase-migration`. A preview-only copy has also been added to `main` under `preview-v21/`; the production root `index.html` was not changed. The preview files are in `main` under `preview-v21/`; expected URL: `https://dvk11111-pixel.github.io/kopilka/preview-v21/` (I could not independently verify that Pages has finished serving the path). The preview uses separate local-storage keys and a named Firebase app; create a new test family there. It uses the same Firebase project, but a different family record. The user confirmed that the Firestore rules were published in Firebase Console.
+Status: implementation is committed to the isolated branch `v21-firebase-migration`. A preview-only copy has also been added to `main` under `preview-v21/`; the production root `index.html` was not changed. Expected preview URL: `https://dvk11111-pixel.github.io/kopilka/preview-v21/` (I could not independently verify that Pages has finished serving the path). The preview uses separate local-storage keys and a named Firebase app; create a new test family there. It uses the same Firebase project, but a different family record. The production service worker now bypasses the preview folder so it does not cache the test page. The user confirmed that the earlier Firestore rules were published in Firebase Console.
 
 ## Implemented in this branch
 
@@ -43,7 +43,7 @@ In project `kopilka-prizov-family`:
 
 ## Validation status and limitations
 
-- GitHub Actions static checks passed: both Firebase helper files pass `node --check`, inline scripts parse, and the Son payload keys match the Firestore rules allowlist.
+- GitHub Actions static checks passed: both Firebase helper files pass `node --check`, inline scripts parse, the Son payload keys match the Firestore rules allowlist, Firebase initialization is lazy, and preview caching is isolated.
 - No Firebase Emulator or live Firestore Rules simulation has been run in this environment.
 - The user confirmed that the rules were published, but their live deployed contents have not been independently inspected here.
 - End-to-end Google sign-in, anonymous sign-in, invitation consumption, cross-device sync, offline/reconnect behavior, and test-mode isolation have not yet been verified on real devices.
