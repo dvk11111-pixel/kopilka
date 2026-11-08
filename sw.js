@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kopilka-family-v21';
+const CACHE_NAME = 'kopilka-family-v21-preview-bypass';
 const APP_FILES = [
   './',
   './index.html',
@@ -31,6 +31,8 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) return;
+  const previewPath = new URL('./preview-v21/', self.location.href).pathname;
+  if (requestUrl.pathname.startsWith(previewPath)) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
