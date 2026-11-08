@@ -2,53 +2,99 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
+    function googleDad() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function anonymousSon() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
     function familyPath(familyId) {
       return /databases/$(database)/documents/families/$(familyId);
     }
     function memberPath(familyId, uid) {
       return /databases/$(database)/documents/families/$(familyId)/members/$(uid);
     }
+    function invitePath(familyId, inviteId) {
+      return /databases/$(database)/documents/families/$(familyId)/invites/$(inviteId);
+    }
+    function isOwner(familyId) {
+      return googleDad()
+        && exists(familyPath(familyId))
+        && get(familyPath(familyId)).data.ownerUid == request.auth.uid;
+    }
     function isMember(familyId) {
       return signedIn() && exists(memberPath(familyId, request.auth.uid));
     }
-    function isDad(familyId) {
-      return isMember(familyId)
-        && get(memberPath(familyId, request.auth.uid)).data.role == 'dad'
-        && get(familyPath(familyId)).data.ownerUid == request.auth.uid;
-    }
     function isSon(familyId) {
-      return isMember(familyId)
+      return anonymousSon() && isMember(familyId)
         && get(memberPath(familyId, request.auth.uid)).data.role == 'son';
     }
 
     match /families/{familyId} {
-      // Family code is a high-entropy invitation identifier; never publish it publicly.
-      allow get: if signedIn();
+      allow create: if googleDad()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.schemaVersion == 21;
+      allow get: if isOwner(familyId) || isMember(familyId);
       allow list: if false;
-      allow create: if signedIn()
-        && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if isDad(familyId);
+      allow update: if isOwner(familyId)
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if false;
 
       match /members/{memberUid} {
         allow get: if signedIn()
-          && (request.auth.uid == memberUid || isDad(familyId));
-        allow list: if isDad(familyId);
-        allow create: if signedIn() && request.auth.uid == memberUid
-          && ((request.resource.data.role == 'dad'
-                && get(familyPath(familyId)).data.ownerUid == request.auth.uid)
-              || (request.resource.data.role == 'son'
-                && exists(familyPath(familyId))));
-        allow update, delete: if isDad(familyId);
+          && (request.auth.uid == memberUid || isOwner(familyId));
+        allow list: if isOwner(familyId);
+        allow create: if (
+          memberUid == request.auth.uid
+          && googleDad()
+          && request.resource.data.role == 'dad'
+          && get(familyPath(familyId)).data.ownerUid == request.auth.uid
+        ) || (
+          memberUid == request.auth.uid
+          && anonymousSon()
+          && request.resource.data.role == 'son'
+          && request.resource.data.inviteId is string
+          && getAfter(invitePath(familyId, request.resource.data.inviteId)).data.familyId == familyId
+          && getAfter(invitePath(familyId, request.resource.data.inviteId)).data.used == true
+          && getAfter(invitePath(familyId, request.resource.data.inviteId)).data.claimedBy == request.auth.uid
+        );
+        allow update, delete: if isOwner(familyId);
       }
 
-      match /spaces/{space}/state/{stateId} {
-        allow get: if isMember(familyId) && stateId == 'main'
-          && (space == 'production' || (space == 'test' && isDad(familyId)));
+      match /invites/{inviteId} {
+        allow get: if isOwner(familyId)
+          || (anonymousSon() && resource.data.used == false
+              && resource.data.expiresAt > request.time);
         allow list: if false;
-        allow create, update, delete: if stateId == 'main' && (
-          isDad(familyId)
-          || (space == 'production' && isSon(familyId))
-        );
+        allow create: if isOwner(familyId)
+          && request.resource.data.familyId == familyId
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.used == false
+          && request.resource.data.expiresAt > request.time;
+        allow update: if anonymousSon()
+          && resource.data.used == false
+          && resource.data.expiresAt > request.time
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['used', 'claimedBy', 'claimedAt'])
+          && request.resource.data.used == true
+          && request.resource.data.claimedBy == request.auth.uid
+          && getAfter(memberPath(familyId, request.auth.uid)).data.role == 'son'
+          && getAfter(memberPath(familyId, request.auth.uid)).data.inviteId == inviteId;
+        allow delete: if isOwner(familyId);
+      }
+
+      // Temporary legacy state access: only Dad may write the monolithic payload.
+      // Son reads production data, but Son writes stay disabled until the payload is split
+      // into separately validated account, request, and progress documents.
+      match /spaces/{space}/state/{stateId} {
+        allow get: if stateId == 'main'
+          && (isOwner(familyId) || (space == 'production' && isSon(familyId)));
+        allow list: if false;
+        allow create, update: if stateId == 'main' && isOwner(familyId)
+          && (space == 'production' || space == 'test');
+        allow delete: if false;
       }
     }
   }
