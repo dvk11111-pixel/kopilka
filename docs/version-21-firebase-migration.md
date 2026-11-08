@@ -1,6 +1,6 @@
 # Version 21 — Firebase migration
 
-Status: implementation committed to the isolated branch `v21-firebase-migration`. It is not deployed to GitHub Pages, and Firestore rules have not been published to Firebase.
+Status: implementation is committed to the isolated branch `v21-firebase-migration`. A preview-only copy has also been added to `main` under `preview-v21/`; the production root `index.html` was not changed. The preview URL is `https://dvk11111-pixel.github.io/kopilka/preview-v21/` (Pages availability still needs browser confirmation). The user confirmed that the Firestore rules were published in Firebase Console.
 
 ## Implemented in this branch
 
@@ -29,7 +29,7 @@ In project `kopilka-prizov-family`:
 1. Enable Google provider in Authentication.
 2. Enable Anonymous provider in Authentication.
 3. Add the GitHub Pages domain to Authorized domains.
-4. Publish the repository's `firestore.rules` in Firestore Rules.
+4. The user has confirmed publishing the repository's `firestore.rules` in Firestore Rules. If rules are changed later, republish them.
 5. Do not enable billing or deploy Cloud Functions for this free-plan version.
 
 ## Migration and data safety
@@ -43,6 +43,6 @@ In project `kopilka-prizov-family`:
 
 - Source-level integration has been reviewed.
 - No Firebase Emulator or live Firestore Rules simulation has been run in this environment.
-- Rules have not been deployed to the Firebase project.
-- End-to-end Google sign-in, anonymous sign-in, invitation consumption, cross-device sync, offline/reconnect behavior, and test-mode isolation still require live testing after publishing the rules.
-- Do not merge or publish this branch until those checks pass.
+- The user confirmed that the rules were published, but their live deployed contents have not been independently inspected here.
+- End-to-end Google sign-in, anonymous sign-in, invitation consumption, cross-device sync, offline/reconnect behavior, and test-mode isolation have not yet been verified on real devices.
+- Keep the v21 pull request unmerged until those checks pass. The preview-only page on `main` is not the production app.
