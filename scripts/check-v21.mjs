@@ -33,5 +33,6 @@ assert.ok(!sonKeys.includes('schoolWeekRewards'), 'Dad-owned schoolWeekRewards m
 assert.ok(preview.includes('preview-v21/preview-auth.js'), 'Preview auth script path is incorrect');
 assert.ok(preview.includes("firebase.initializeApp(firebaseConfig,'kopilka-v21-preview')"), 'Preview must use a named Firebase app');
 assert.ok(preview.includes('kopilka-v21-preview-family-v2'), 'Preview local storage must be isolated');
+assert.ok(!preview.includes('"kopilka-game-language"'), 'Preview must not read the production language preference');
 process.stdout.write('OK Son sync contract: ' + sonKeys.length + ' keys are allowed by Firestore rules\n');
 process.stdout.write('OK preview isolation checks\n');
