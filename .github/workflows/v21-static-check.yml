@@ -1,0 +1,20 @@
+name: Version 21 static checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check Firebase helper syntax
+        run: node --check firebase-v21-auth.js
+      - name: Check preview Firebase helper syntax
+        run: node --check preview-v21/preview-auth.js
+      - name: Check inline scripts and sync contract
+        run: node scripts/check-v21.mjs
