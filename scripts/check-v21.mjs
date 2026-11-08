@@ -34,5 +34,10 @@ assert.ok(preview.includes('preview-v21/preview-auth.js'), 'Preview auth script 
 assert.ok(preview.includes("firebase.initializeApp(firebaseConfig,'kopilka-v21-preview')"), 'Preview must use a named Firebase app');
 assert.ok(preview.includes('kopilka-v21-preview-family-v2'), 'Preview local storage must be isolated');
 assert.ok(!preview.includes('"kopilka-game-language"'), 'Preview must not read the production language preference');
+assert.ok(!preview.includes('navigator.serviceWorker.register'), 'Preview must not register the production service worker');
+assert.ok(app.includes("id:uniqueId('t')"), 'Ticket IDs must be unique across devices');
+assert.ok(app.includes('mergeDecisionRecords'), 'Dad-owned request decisions must be preserved during merges');
+assert.ok(app.includes('processedWinIds'), 'Dad resets must tombstone cleared wins');
+assert.ok(app.includes('processedMoneyIds'), 'Money collection acknowledgements must be idempotent');
 process.stdout.write('OK Son sync contract: ' + sonKeys.length + ' keys are allowed by Firestore rules\n');
 process.stdout.write('OK preview isolation checks\n');
