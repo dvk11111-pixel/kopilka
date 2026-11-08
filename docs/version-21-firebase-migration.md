@@ -1,6 +1,6 @@
 # Version 21 — Firebase migration
 
-Status: implementation is committed to the isolated branch `v21-firebase-migration`. A preview-only copy has also been added to `main` under `preview-v21/`; the production root `index.html` was not changed. The preview URL is `https://dvk11111-pixel.github.io/kopilka/preview-v21/` (Pages availability still needs browser confirmation). The user confirmed that the Firestore rules were published in Firebase Console.
+Status: implementation is committed to the isolated branch `v21-firebase-migration`. A preview-only copy has also been added to `main` under `preview-v21/`; the production root `index.html` was not changed. The preview files are in `main` under `preview-v21/`; expected URL: `https://dvk11111-pixel.github.io/kopilka/preview-v21/` (I could not independently verify that Pages has finished serving the path). The preview uses separate local-storage keys and a named Firebase app; create a new test family there. It uses the same Firebase project, but a different family record. The user confirmed that the Firestore rules were published in Firebase Console.
 
 ## Implemented in this branch
 
@@ -14,7 +14,9 @@ Status: implementation is committed to the isolated branch `v21-firebase-migrati
 - Legacy email/password registration and the insecure “join by family ID only” flow have been removed from the login UI.
 - The existing production snapshot remains Dad-write-only. The test snapshot is Dad-only.
 - Son progress is synchronized separately in `families/{familyId}/sonState/main`.
-- Son writes are restricted by rules to a fixed allowlist of game progress, tickets, wins, and user-submitted requests. Son cannot write prize catalog, money balance, payout counters, or Dad approvals.
+- Son writes are restricted by rules to a fixed allowlist of game progress, tickets, wins, requests, and acknowledgement events. Dad-owned subjects and weekly reward markers are not Son-writable.
+- Ticket IDs are unique across devices. Son sends explicit ticket-spend, reward-collection, money-collection, and cashout events; Dad processes them idempotently into the authoritative snapshot.
+- Parent decisions on homework and prize requests win during merges, so an old Son copy cannot revert Dad's confirmation/rejection.
 - Dad receives the Son progress document and folds the reported progress into the authoritative production snapshot.
 
 ## Data trust boundary (free Firebase plan)
@@ -29,7 +31,7 @@ In project `kopilka-prizov-family`:
 1. Enable Google provider in Authentication.
 2. Enable Anonymous provider in Authentication.
 3. Add the GitHub Pages domain to Authorized domains.
-4. The user has confirmed publishing the repository's `firestore.rules` in Firestore Rules. If rules are changed later, republish them.
+4. The user previously confirmed publishing the rules. The rules file has since been updated to allow the new Son acknowledgement fields; **publish the current `firestore.rules` again before testing Version 21**.
 5. Do not enable billing or deploy Cloud Functions for this free-plan version.
 
 ## Migration and data safety
@@ -41,7 +43,7 @@ In project `kopilka-prizov-family`:
 
 ## Validation status and limitations
 
-- Source-level integration has been reviewed.
+- GitHub Actions static checks passed: both Firebase helper files pass `node --check`, inline scripts parse, and the Son payload keys match the Firestore rules allowlist.
 - No Firebase Emulator or live Firestore Rules simulation has been run in this environment.
 - The user confirmed that the rules were published, but their live deployed contents have not been independently inspected here.
 - End-to-end Google sign-in, anonymous sign-in, invitation consumption, cross-device sync, offline/reconnect behavior, and test-mode isolation have not yet been verified on real devices.
