@@ -44,7 +44,10 @@
   async function createFamily() {
     const user = auth.currentUser;
     requireDad(user);
-    const familyId = randomHex(12);
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(10);
+    crypto.getRandomValues(bytes);
+    const familyId = 'K' + Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
     const ref = familyRef(familyId);
     await ref.set({
       ownerUid: user.uid,
@@ -75,22 +78,10 @@
     });
     return { code, expiresAt };
   }
-  async function claimInvitation(code) {
-    const user = auth.currentUser;
-    requireSon(user);
-    if (!/^[0-9a-f]{48}$/.test(String(code || ''))) {
-      throw new Error('Код приглашения имеет неверный формат.');
-    }
-    const inviteRef = db.collectionGroup('invites').doc; // collectionGroup is not used for writes
-    const familyQuery = await db.collection('families').get();
-    // Family IDs are not enumerable by clients under the security rules. The invitation
-    // code is therefore entered together with the family ID shown by Dad.
-    throw new Error('Для принятия приглашения передайте также идентификатор семьи.');
-  }
   async function acceptInvitation(familyId, code) {
     const user = auth.currentUser;
     requireSon(user);
-    if (!/^[0-9a-f]{24}$/.test(String(familyId || '')) || !/^[0-9a-f]{48}$/.test(String(code || ''))) {
+    if (!/^K[A-HJ-NP-Z2-9]{10}$/.test(String(familyId || '')) || !/^[0-9a-f]{48}$/.test(String(code || ''))) {
       throw new Error('Проверь идентификатор семьи и код приглашения.');
     }
     const fref = familyRef(familyId);
