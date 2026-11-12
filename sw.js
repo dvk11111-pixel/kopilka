@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kopilka-family-v23';
+const CACHE_NAME = 'kopilka-family-v23-1';
 const APP_FILES = [
   './',
   './index.html',
@@ -31,6 +31,22 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) return;
+
+  // Always check the server for app pages so users don't get stuck on an old HTML shell.
+  if (event.request.mode === 'navigate' || requestUrl.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
