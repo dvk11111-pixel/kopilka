@@ -1,7 +1,7 @@
 {
   "name": "Копилка призов",
   "short_name": "Копилка",
-  "description": "Семейная копилка призов, билеты и учебные игры",
+  "description": "Остров, игровые задания и семейная копилка призов",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
