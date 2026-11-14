@@ -367,12 +367,43 @@ v26RefreshWorld();
 function v26RenderParent(){
  const root=$('v26-parent-panel');if(!root)return;
  const date=$('v26-due-date');if(date&&!date.value)date.value=v26Tomorrow();
- const subj=$('v26-parent-subjects');if(subj)subj.innerHTML=subjects.map(s=>'<label class="v26-subject-check"><input type="checkbox" data-v26-parent-subject="'+esc(s)+'"> '+esc(subjectLabel(s))+'</label>').join('');
- const review=$('v26-review-list');if(review){let out='';Object.keys(v26.homework).sort().forEach(day=>{const h=v26.homework[day];(h.subjects||[]).forEach(subject=>{const t=h.tasks&&h.tasks[subject]||{};if(['submitted','revision','failed'].includes(t.status)||t.status==='assigned'&&t.self){out+='<div class="request-item"><b>📚 '+esc(subjectLabel(subject))+' · '+v26DateLabel(day)+'</b><div class="v26-status">'+(t.self?'Самостоятельно назначено Костей':'Назначено папой')+(t.status==='assigned'?' · ждёт выполнения':' · отправлено '+new Date(t.submittedAt||Date.now()).toLocaleString('ru-RU'))+'</div>'+(t.status==='revision'?'<div class="warn">Ожидает повторной проверки. '+esc(t.comment||'')+'</div>':'')+(t.status==='failed'?'<div class="warn">'+esc(t.reason||'Костя не отметил задание.')+'</div><button class="primary" data-v26-failed-allow="'+esc(day+'|'+subject)+'">Разрешить без последствий</button><button class="secondary" data-v26-failed-block="'+esc(day+'|'+subject)+'" style="margin-top:6px">Блокировать развитие завтра</button>':'<label class="tiny">Комментарий папы</label><input class="field" data-v26-comment="'+esc(day+'|'+subject)+'" placeholder="Необязательно"><button class="primary" data-v26-confirm="'+esc(day+'|'+subject)+'">Подтвердить</button><button class="secondary" data-v26-fix="'+esc(day+'|'+subject)+'" style="margin-top:6px">Попросить исправить</button><button class="small" data-v26-reject="'+esc(day+'|'+subject)+'" style="margin-top:6px">Отклонить</button>')+'</div>'}})});if(!out)out='<p class="muted">Нет домашних заданий, ожидающих проверки.</p>';review.innerHTML=out}
- const ar=$('v26-attendance-review');if(ar){let out='';Object.keys(v26.attendance).sort().forEach(day=>{const a=v26.attendance[day];if(a.status==='pending'||a.status==='absent'){out+='<div class="request-item"><b>🏫 '+v26DateLabel(day)+' · '+(a.status==='pending'?'Посещение отмечено Костей':'Отсутствие в школе')+'</b><div class="v26-task-actions">'+(a.status==='pending'?'<button class="primary" data-v26-attend-confirm="'+day+'">Подтвердить посещение</button>':'')+'<button class="secondary" data-v26-attend-yes="'+day+'">Уважительная причина</button><button class="small" data-v26-attend-no="'+day+'">Неуважительная причина</button></div></div>'}});ar.innerHTML=out||'<p class="muted">Нет отметок посещаемости на проверке.</p>'}
- const sl=$('v26-secret-list');if(sl)sl.innerHTML=v26.secretPrizes.map(p=>'<div class="request-item">'+esc(p.emoji||'🎁')+' <b>'+esc(p.name)+'</b> · '+p.cost+' спец. бил. · '+(p.active?'активен':'выключен')+' <button class="small" data-v26-secret-toggle="'+esc(p.id)+'">'+(p.active?'Выключить':'Включить')+'</button> <button class="small" data-v26-secret-delete="'+esc(p.id)+'">Удалить</button></div>').join('')||'<p class="muted">Секретных призов пока нет.</p>';
- const history=$('v26-secret-history');if(history)history.innerHTML=v26.secretHistory.slice().reverse().map(x=>'<div class="ticket">🏆 <b>'+esc(x.name)+'</b><div class="tiny">'+esc(x.date)+'</div></div>').join('')||'<p class="muted">Пока секретные призы не выдавались.</p>';
- const claims=$('v26-secret-claims');if(claims)claims.innerHTML=v26.secretClaims.filter(x=>x.status==='pending').map(x=>'<div class="request-item"><b>🎁 Запрос секретного приза</b><div>'+esc(x.name)+' · '+x.cost+' специальных билетов</div><button class="primary" data-v26-secret-approve="'+esc(x.id)+'">Выдать приз</button><button class="small" data-v26-secret-deny="'+esc(x.id)+'">Отклонить</button></div>').join('')||'<p class="muted">Нет запросов на секретные призы.</p>';
+ const subj=$('v26-parent-subjects');
+ if(subj)subj.innerHTML=subjects.map(s=>'<label class="v26-subject-check"><input type="checkbox" data-v26-parent-subject="'+esc(s)+'"> '+esc(subjectLabel(s))+'</label>').join('');
+ const review=$('v26-review-list');
+ if(review){
+  let out='';
+  Object.keys(v26.homework).sort().forEach(day=>{
+   const h0=v26.homework[day];
+   (h0.subjects||[]).forEach(subject=>{
+    const t=(h0.tasks||{})[subject]||{};
+    if(t.status==='assigned'&&t.self){
+     out+='<div class="request-item"><b>📚 '+esc(subjectLabel(subject))+' · '+v26DateLabel(day)+'</b><div class="v26-status">Костя самостоятельно назначил это задание. Ожидает выполнения.</div></div>';
+    }else if(t.status==='failed'){
+     out+='<div class="request-item"><b>📚 '+esc(subjectLabel(subject))+' · '+v26DateLabel(day)+'</b><div class="v26-status">'+(t.self?'Самостоятельно назначено Костей':'Назначено папой')+'</div><div class="warn">'+esc(t.reason||'Костя не отметил задание.')+'</div><button class="primary" data-v26-failed-allow="'+esc(day+'|'+subject)+'">Разрешить без последствий</button><button class="secondary" data-v26-failed-block="'+esc(day+'|'+subject)+'" style="margin-top:6px">Блокировать развитие завтра</button></div>';
+    }else if(t.status==='submitted'||t.status==='revision'){
+     out+='<div class="request-item"><b>📚 '+esc(subjectLabel(subject))+' · '+v26DateLabel(day)+'</b><div class="v26-status">'+(t.self?'Самостоятельно назначено Костей':'Назначено папой')+' · отправлено '+new Date(t.submittedAt||Date.now()).toLocaleString('ru-RU')+'</div>'+(t.status==='revision'?'<div class="warn">Ожидает повторной проверки. '+esc(t.comment||'')+'</div>':'')+'<label class="tiny">Комментарий папы</label><input class="field" data-v26-comment="'+esc(day+'|'+subject)+'" placeholder="Необязательно"><button class="primary" data-v26-confirm="'+esc(day+'|'+subject)+'">Подтвердить</button><button class="secondary" data-v26-fix="'+esc(day+'|'+subject)+'" style="margin-top:6px">Попросить исправить</button><button class="small" data-v26-reject="'+esc(day+'|'+subject)+'" style="margin-top:6px">Отклонить</button></div>';
+    }
+   });
+  });
+  review.innerHTML=out||'<p class="muted">Нет домашних заданий, ожидающих проверки.</p>';
+ }
+ const ar=$('v26-attendance-review');
+ if(ar){
+  let out='';
+  Object.keys(v26.attendance).sort().forEach(day=>{
+   const a=v26.attendance[day];
+   if(a.status==='pending'||a.status==='absent'){
+    out+='<div class="request-item"><b>🏫 '+v26DateLabel(day)+' · '+(a.status==='pending'?'Посещение отмечено Костей':'Отсутствие в школе')+'</b><div class="v26-task-actions">'+(a.status==='pending'?'<button class="primary" data-v26-attend-confirm="'+day+'">Подтвердить посещение</button>':'')+'<button class="secondary" data-v26-attend-yes="'+day+'">Уважительная причина</button><button class="small" data-v26-attend-no="'+day+'">Неуважительная причина</button></div></div>';
+   }
+  });
+  ar.innerHTML=out||'<p class="muted">Нет отметок посещаемости на проверке.</p>';
+ }
+ const sl=$('v26-secret-list');
+ if(sl)sl.innerHTML=v26.secretPrizes.map(p=>'<div class="request-item">'+esc(p.emoji||'🎁')+' <b>'+esc(p.name)+'</b> · '+p.cost+' спец. бил. · '+(p.active?'активен':'выключен')+' <button class="small" data-v26-secret-toggle="'+esc(p.id)+'">'+(p.active?'Выключить':'Включить')+'</button> <button class="small" data-v26-secret-delete="'+esc(p.id)+'">Удалить</button></div>').join('')||'<p class="muted">Секретных призов пока нет.</p>';
+ const history=$('v26-secret-history');
+ if(history)history.innerHTML=v26.secretHistory.slice().reverse().map(x=>'<div class="ticket">🏆 <b>'+esc(x.name)+'</b><div class="tiny">'+esc(x.date)+'</div></div>').join('')||'<p class="muted">Пока секретные призы не выдавались.</p>';
+ const claims=$('v26-secret-claims');
+ if(claims)claims.innerHTML=v26.secretClaims.filter(x=>x.status==='pending').map(x=>'<div class="request-item"><b>🎁 Запрос секретного приза</b><div>'+esc(x.name)+' · '+x.cost+' специальных билетов</div><button class="primary" data-v26-secret-approve="'+esc(x.id)+'">Выдать приз</button><button class="small" data-v26-secret-deny="'+esc(x.id)+'">Отклонить</button></div>').join('')||'<p class="muted">Нет запросов на секретные призы.</p>';
  const off=$('v26-off-list');if(off)off.textContent='Дни без занятий: '+(v26.offDays.map(v26DateLabel).join(', ')||'не отмечены');
 }
 const v26OldParent=renderParentTools;
