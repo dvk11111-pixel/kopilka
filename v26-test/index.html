@@ -338,29 +338,25 @@ function v26HasSubmitted(k){if(v26.confirmedAccessDate===k)return true;const h=v
 function v26CanBuild(){
  const k=todayKey(),h=v26.homework[k],now=Date.now();
  if(v26.blockedUntil===k)return false;
- if(h&&h.subjects.length){
-  if(h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return true;
-  if(h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}))return true;
-  return false;
- }
- if(v26.missedHold)return false;
- if(h&&h.noHomework)return true;
+ if(h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return true;
  if(v26.confirmedAccessDate===k)return true;
- return Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>{const t=(x.tasks||{})[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}));
+ if(v26.missedHold)return false;
+ const tasks=Object.values(v26.homework).flatMap(x=>(x.subjects||[]).map(s=>(x.tasks||{})[s]||{}));
+ if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)<=now))return false;
+ if(h&&h.noHomework)return true;
+ if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now))return true;
+ return false;
 }
 function v26BuildMessage(){
  const k=todayKey(),h=v26.homework[k],now=Date.now();
  if(v26.blockedUntil===k)return 'Развитие временно остановлено решением папы. Языковые игры по-прежнему доступны.';
- if(h&&h.subjects.length){
-  if(h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return 'Папа подтвердил домашнее задание. Строительство открыто!';
-  if(h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}))return 'Временный доступ к строительству действует до проверки папой.';
-  return 'Выполни и отправь хотя бы одно задание на сегодня. После отправки откроется временный доступ.';
- }
+ if(h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed')||v26.confirmedAccessDate===k)return 'Папа подтвердил домашнее задание. Строительство открыто!';
  if(v26.missedHold)return 'Папа ещё не рассмотрел пропущенное задание. Дождись его решения.';
+ const tasks=Object.values(v26.homework).flatMap(x=>(x.subjects||[]).map(s=>(x.tasks||{})[s]||{}));
+ if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)<=now))return 'Временные 24 часа закончились. Дождись решения папы. Можно отправить ему напоминание.';
  if(h&&h.noHomework)return 'На сегодня домашних заданий нет. Можно развивать цивилизацию!';
- if(v26.confirmedAccessDate===k)return 'Папа подтвердил домашнее задание. Строительство открыто!';
- const active=Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>['submitted','revision'].includes((x.tasks[s]||{}).status)&&Number((x.tasks[s]||{}).expiresAt||0)>now));
- if(active)return 'Временный доступ к строительству действует до проверки папой.';
+ if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now))return 'Временный доступ к строительству действует до проверки папой.';
+ if(h&&h.subjects.length)return 'Выполни и отправь хотя бы одно задание на сегодня. После отправки откроется временный доступ.';
  return 'Сначала выбери домашние задания на сегодня или попроси папу назначить их.';
 }
 function v26OpenReward(icon,title,message){const el=$('v26-reward-popup');if(!el)return;$('v26-reward-icon').textContent=icon;$('v26-reward-title').textContent=title;$('v26-reward-text').textContent=message;el.classList.add('show')}
@@ -402,7 +398,7 @@ function v26RenderSon(){
  const games=$('v26-extra-games');if(games)games.innerHTML='<div class="v26-game-panel"><b>🧩 Новые языковые испытания</b><div class="v26-task-actions"><button class="secondary" id="v26-sentence-start">Составить предложение</button><button class="secondary" id="v26-letters-start">Слова из букв</button></div><button class="primary" id="v26-mini-start" style="margin-top:8px">🎲 Сюрприз-мини-игра</button></div>';
 }
 function v26Render(){v26RenderSon();v26RenderParent()}
-function v26SetTempAccess(day,subject){const h=v26Homework(day),t=h.tasks[subject];if(!v26.tempSnapshot||(v26.tempDeadline&&Date.now()>v26.tempDeadline))v26.tempSnapshot=v26Snapshot();if(!t.submittedAt)t.submittedAt=Date.now();if(!t.expiresAt)t.expiresAt=Date.now()+86400000;v26.tempStartedAt=v26.tempStartedAt||Date.now();v26.tempDeadline=Math.max(v26.tempDeadline||0,t.expiresAt)}
+function v26SetTempAccess(day,subject){const h=v26Homework(day),t=h.tasks[subject];if(!v26.tempSnapshot)v26.tempSnapshot=v26Snapshot();if(!t.submittedAt)t.submittedAt=Date.now();if(!t.expiresAt)t.expiresAt=Date.now()+86400000;v26.tempStartedAt=v26.tempStartedAt||Date.now();v26.tempDeadline=Math.max(v26.tempDeadline||0,t.expiresAt)}
 function v26Submit(day,subject,self){const h=v26Homework(day);if(!h.subjects.includes(subject))h.subjects.push(subject);let t=h.tasks[subject]||{};const wasRejected=t.status==='rejected';t.status='submitted';t.self=!!self;t.submittedAt=Date.now();if(wasRejected){t.expiresAt=Date.now()+86400000;v26.tempSnapshot=v26Snapshot();v26.tempStartedAt=Date.now();v26.tempDeadline=t.expiresAt;v26.reminderUsed=false}else if(!t.expiresAt){t.expiresAt=Date.now()+86400000;v26SetTempAccess(day,subject)}h.tasks[subject]=t;v26.pendingSpecial=Number(v26.pendingSpecial||0);save();v26Render();renderWorld();renderParentTools()}
 function v26ReviewResolve(day,subject,action,comment){const h=v26Homework(day),t=h.tasks[subject]||{};t.comment=comment||t.comment||'';if(action==='confirm'){const realSubmission=['submitted','revision'].includes(t.status);t.status='confirmed';t.confirmedAt=Date.now();v26.confirmedAccessDate=todayKey();if(realSubmission&&v26.pendingSpecial){v26.specialTickets+=v26.pendingSpecial;v26.pendingSpecial=0;v26OpenReward('🎟️','Специальные билеты выданы!','Папа подтвердил домашнее задание. Теперь доступны секретные призы.')}v26.tempSnapshot=null;v26.tempDeadline=0;v26.tempStartedAt=0;v26.reminderUsed=false}else if(action==='fix'){t.status='revision';t.comment=comment||'Пожалуйста, исправь задание.'}else{t.status='rejected';t.comment=comment||'Задание нужно выполнить заново.';const other=h.subjects.some(s=>s!==subject&&((h.tasks[s]||{}).status==='confirmed'||(['submitted','revision'].includes((h.tasks[s]||{}).status)&&Number((h.tasks[s]||{}).expiresAt||0)>Date.now())));if(!other)v26Rollback()}save();v26Render();renderWorld();renderParentTools()}
 function v26AttendanceConfirm(day){const a=v26.attendance[day]||{};if(a.status==='confirmed')return;a.status='confirmed';a.confirmedAt=Date.now();v26.streak=(Number(v26.streak)||0)+1;let bonus=0;if(v26.streak===5)bonus=2;if(v26.streak===10)bonus=4;if(v26.streak===20)bonus=8;worldState.energy=(Number(worldState.energy)||0)+1+bonus;save();renderWorld();v26Render();v26OpenReward('🏫','Школьный день засчитан!','Папа подтвердил посещение. +1 энергия'+(bonus?' и бонус серии +'+bonus+' энергии!':'')+'. Текущая серия: '+v26.streak+' учебных дней.');}
