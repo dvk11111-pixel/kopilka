@@ -430,8 +430,39 @@ function v26Render(){v26RenderSon();v26RenderParent()}
 function v26SetTempAccess(day,subject){const h=v26Homework(day),t=h.tasks[subject];if(!v26.tempSnapshot)v26.tempSnapshot=v26Snapshot();if(!t.submittedAt)t.submittedAt=Date.now();if(!t.expiresAt)t.expiresAt=Date.now()+86400000;v26.tempStartedAt=v26.tempStartedAt||Date.now();v26.tempDeadline=Math.max(v26.tempDeadline||0,t.expiresAt)}
 function v26Submit(day,subject,self){const h=v26Homework(day);if(!h.subjects.includes(subject))h.subjects.push(subject);let t=h.tasks[subject]||{};const wasRejected=t.status==='rejected';t.status='submitted';t.self=!!self;t.submittedAt=Date.now();if(wasRejected){t.expiresAt=Date.now()+86400000;if(!v26.tempSnapshot)v26.tempSnapshot=v26Snapshot();v26.tempStartedAt=Date.now();v26.tempDeadline=t.expiresAt;v26.reminderUsed=false}else if(!t.expiresAt){t.expiresAt=Date.now()+86400000;v26SetTempAccess(day,subject)}h.tasks[subject]=t;v26.pendingSpecial=Number(v26.pendingSpecial||0);save();v26Render();renderWorld();renderParentTools()}
 function v26ReviewResolve(day,subject,action,comment){const h=v26Homework(day),t=h.tasks[subject]||{};t.comment=comment||t.comment||'';if(action==='confirm'){const realSubmission=['submitted','revision'].includes(t.status);t.status='confirmed';t.confirmedAt=Date.now();v26.confirmedAccessDate=todayKey();if(realSubmission&&v26.pendingSpecial){v26.specialTickets+=v26.pendingSpecial;v26.pendingSpecial=0;v26OpenReward('🎟️','Специальные билеты выданы!','Папа подтвердил домашнее задание. Теперь доступны секретные призы.')}v26.tempSnapshot=null;v26.tempDeadline=0;v26.tempStartedAt=0;v26.reminderUsed=false}else if(action==='fix'){t.status='revision';t.comment=comment||'Пожалуйста, исправь задание.'}else{t.status='rejected';t.comment=comment||'Задание нужно выполнить заново.';const other=Object.keys(v26.homework).some(otherDay=>(v26.homework[otherDay].subjects||[]).some(s=>(otherDay!==day||s!==subject)&&((v26.homework[otherDay].tasks[s]||{}).status==='confirmed'||(['submitted','revision'].includes((v26.homework[otherDay].tasks[s]||{}).status)&&Number((v26.homework[otherDay].tasks[s]||{}).expiresAt||0)>Date.now()))));if(!other)v26Rollback()}save();v26Render();renderWorld();renderParentTools()}
-function v26AttendanceConfirm(day){const a=v26.attendance[day]||{};if(a.status==='confirmed')return;a.status='confirmed';a.confirmedAt=Date.now();v26.streak=(Number(v26.streak)||0)+1;let bonus=0;if(v26.streak===5)bonus=2;if(v26.streak===10)bonus=4;if(v26.streak===20)bonus=8;worldState.energy=(Number(worldState.energy)||0)+1+bonus;save();renderWorld();v26Render();v26OpenReward('🏫','Школьный день засчитан!','Папа подтвердил посещение. +1 энергия'+(bonus?' и бонус серии +'+bonus+' энергии!':'')+'. Текущая серия: '+v26.streak+' учебных дней.');}
-function v26AttendanceDecision(day,decision){const a=v26.attendance[day]||{};if(decision==='present'){v26AttendanceConfirm(day);return}if(decision==='valid'){a.status='justified';a.decidedAt=Date.now()}else{a.status='unjustified';a.decidedAt=Date.now();v26.streak=0;const d=new Date();d.setDate(d.getDate()+1);const absentDate=new Date(day+'T12:00:00');absentDate.setDate(absentDate.getDate()+1);v26.blockedUntil=v26DateKey(absentDate)}v26.attendance[day]=a;save();v26Render();v26OpenReward(decision==='valid'?'💚':'⏸️',decision==='valid'?'Причина уважительная':'Развитие приостановлено','Решение папы сохранено. Уже заработанные награды и постройки остаются у тебя.');}
+function v26RecalculateStreak(){
+ const previous=Number(v26.streak)||0;let count=0,paused=false;
+ Object.keys(v26.attendance).sort().forEach(day=>{
+  if(paused||!v26IsSchoolDay(day))return;
+  const status=(v26.attendance[day]||{}).status;
+  if(status==='unjustified'){count=0;return}
+  if(status==='pending'||status==='absent'){paused=true;return}
+  if(status==='confirmed')count++;
+ });
+ if(paused)count=Math.max(count,previous);
+ v26.streak=count;
+ let bonus=0;
+ [[5,2],[10,4],[20,8]].forEach(([threshold,amount])=>{if(previous<threshold&&count>=threshold){worldState.energy=(Number(worldState.energy)||0)+amount;bonus+=amount}});
+ return bonus;
+}
+function v26AttendanceConfirm(day){
+ const a=v26.attendance[day]||{};if(a.status==='confirmed')return;
+ a.status='confirmed';a.confirmedAt=Date.now();v26.attendance[day]=a;
+ worldState.energy=(Number(worldState.energy)||0)+1;
+ const bonus=v26RecalculateStreak();
+ save();renderWorld();v26Render();
+ v26OpenReward('🏫','Школьный день засчитан!','Папа подтвердил посещение. +1 энергия'+(bonus?' и бонус серии +'+bonus+' энергии!':'')+'. Текущая серия: '+v26.streak+' учебных дней.');
+}
+function v26AttendanceDecision(day,decision){
+ const a=v26.attendance[day]||{};
+ if(decision==='present'){v26AttendanceConfirm(day);return}
+ if(decision==='valid'){a.status='justified';a.decidedAt=Date.now()}
+ else{a.status='unjustified';a.decidedAt=Date.now();v26.streak=0;v26.lastExpeditionTier=0;const absentDate=new Date(day+'T12:00:00');absentDate.setDate(absentDate.getDate()+1);v26.blockedUntil=v26DateKey(absentDate)}
+ v26.attendance[day]=a;
+ const bonus=v26RecalculateStreak();
+ save();v26Render();
+ v26OpenReward(decision==='valid'?'💚':'⏸️',decision==='valid'?'Причина уважительная':'Развитие приостановлено','Решение папы сохранено. Серия посещений '+(decision==='valid'?'сохранена':'перезапущена')+'.'+(bonus?' Дополнительный бонус серии: +'+bonus+' энергии.':'')+' Уже заработанные награды и постройки сохраняются.');
+}
 function v26AutoCheckin(){
  if(role!=='son')return;
  const now=new Date(),day=todayKey();
