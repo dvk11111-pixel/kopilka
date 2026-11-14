@@ -336,26 +336,32 @@ function v26Snapshot(){return {unlocked:(worldState.unlocked||[]).slice(),availa
 function v26Rollback(){if(!v26.tempSnapshot)return;const s=v26.tempSnapshot;worldState.unlocked=s.unlocked.slice();worldState.availablePlots=s.availablePlots.slice();worldState.buildings=JSON.parse(JSON.stringify(s.buildings));worldState.treasures=s.treasures.slice();worldState.milestones=s.milestones.slice();v26.tempSnapshot=null;v26.tempStartedAt=0;v26.tempDeadline=0;save();renderWorld()}
 function v26HasSubmitted(k){if(v26.confirmedAccessDate===k)return true;const h=v26.homework[k];return !!(h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))}
 function v26CanBuild(){
- const k=todayKey(),h=v26.homework[k];
+ const k=todayKey(),h=v26.homework[k],now=Date.now();
  if(v26.blockedUntil===k)return false;
- if(h&&h.subjects.length){if(h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return true;const now=Date.now();if(h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}))return true}
- if(v26.confirmedAccessDate===k)return true;
- const now=Date.now();if(Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>{const t=(x.tasks||{})[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now})))return true;
+ if(h&&h.subjects.length){
+  if(h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return true;
+  if(h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}))return true;
+  return false;
+ }
  if(v26.missedHold)return false;
  if(h&&h.noHomework)return true;
- if(!h||!h.subjects.length)return false;
- const now=Date.now();
- return h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now});
+ if(v26.confirmedAccessDate===k)return true;
+ return Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>{const t=(x.tasks||{})[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}));
 }
 function v26BuildMessage(){
- const k=todayKey(),h=v26.homework[k];
+ const k=todayKey(),h=v26.homework[k],now=Date.now();
  if(v26.blockedUntil===k)return 'Развитие временно остановлено решением папы. Языковые игры по-прежнему доступны.';
- if(v26.confirmedAccessDate===k||h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return 'Папа подтвердил домашнее задание. Строительство открыто!';
+ if(h&&h.subjects.length){
+  if(h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))return 'Папа подтвердил домашнее задание. Строительство открыто!';
+  if(h.subjects.some(s=>{const t=h.tasks[s]||{};return ['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now}))return 'Временный доступ к строительству действует до проверки папой.';
+  return 'Выполни и отправь хотя бы одно задание на сегодня. После отправки откроется временный доступ.';
+ }
  if(v26.missedHold)return 'Папа ещё не рассмотрел пропущенное задание. Дождись его решения.';
  if(h&&h.noHomework)return 'На сегодня домашних заданий нет. Можно развивать цивилизацию!';
- if(!h||!h.subjects.length)return 'Сначала выбери домашние задания на сегодня или попроси папу назначить их.';
- const active=Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>['submitted','revision'].includes((x.tasks[s]||{}).status)&&Number((x.tasks[s]||{}).expiresAt||0)>Date.now()));
- return active?'Временный доступ к строительству действует до проверки папой.':'Отправь выполненное домашнее задание папе. После отправки откроется временный доступ на 24 часа.';
+ if(v26.confirmedAccessDate===k)return 'Папа подтвердил домашнее задание. Строительство открыто!';
+ const active=Object.values(v26.homework).some(x=>(x.subjects||[]).some(s=>['submitted','revision'].includes((x.tasks[s]||{}).status)&&Number((x.tasks[s]||{}).expiresAt||0)>now));
+ if(active)return 'Временный доступ к строительству действует до проверки папой.';
+ return 'Сначала выбери домашние задания на сегодня или попроси папу назначить их.';
 }
 function v26OpenReward(icon,title,message){const el=$('v26-reward-popup');if(!el)return;$('v26-reward-icon').textContent=icon;$('v26-reward-title').textContent=title;$('v26-reward-text').textContent=message;el.classList.add('show')}
 $('v26-reward-close').onclick=()=>$('v26-reward-popup').classList.remove('show');
