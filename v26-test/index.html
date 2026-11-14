@@ -332,8 +332,8 @@ function v26DateLabel(k){const a=String(k||'').split('-').map(Number);return a.l
 function v26Weekday(k){const a=k.split('-').map(Number);return new Date(a[0],a[1]-1,a[2]).getDay()}
 function v26IsSchoolDay(k){return v26Weekday(k)>0&&v26Weekday(k)<6&&!v26.offDays.includes(k)}
 function v26Homework(k){if(!v26.homework[k])v26.homework[k]={subjects:[],tasks:{},noHomework:false};const h=v26.homework[k];h.subjects=Array.isArray(h.subjects)?h.subjects:[];h.tasks=h.tasks||{};return h}
-function v26Snapshot(){return {unlocked:(worldState.unlocked||[]).slice(),availablePlots:(worldState.availablePlots||[]).slice(),buildings:JSON.parse(JSON.stringify(worldState.buildings||{})),treasures:(worldState.treasures||[]).slice(),milestones:(worldState.milestones||[]).slice()}}
-function v26Rollback(){if(!v26.tempSnapshot)return;const s=v26.tempSnapshot;worldState.unlocked=s.unlocked.slice();worldState.availablePlots=s.availablePlots.slice();worldState.buildings=JSON.parse(JSON.stringify(s.buildings));worldState.treasures=s.treasures.slice();worldState.milestones=s.milestones.slice();v26.tempSnapshot=null;v26.tempStartedAt=0;v26.tempDeadline=0;save();renderWorld()}
+function v26Snapshot(){return {unlocked:(worldState.unlocked||[]).slice(),availablePlots:(worldState.availablePlots||[]).slice(),buildings:JSON.parse(JSON.stringify(worldState.buildings||{}))}}
+function v26Rollback(){if(!v26.tempSnapshot)return;const s=v26.tempSnapshot;worldState.unlocked=s.unlocked.slice();worldState.availablePlots=s.availablePlots.slice();worldState.buildings=JSON.parse(JSON.stringify(s.buildings));v26.tempSnapshot=null;v26.tempStartedAt=0;v26.tempDeadline=0;save();renderWorld()}
 function v26HasSubmitted(k){if(v26.confirmedAccessDate===k)return true;const h=v26.homework[k];return !!(h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='confirmed'))}
 function v26CanBuild(){
  const k=todayKey(),h=v26.homework[k],now=Date.now();
