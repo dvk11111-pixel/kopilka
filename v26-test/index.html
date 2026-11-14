@@ -568,9 +568,9 @@ function v26SentenceGame(){
 }
 function v26LettersGame(){
  const bank={
-  me:[{letters:['d','o','m','a'],words:['dom','do','od','moda','oda','dam']},{letters:['s','u','n','c','e'],words:['sunce','sve','sen','nese','cene']},{letters:['v','o','d','a'],words:['voda','vod','ova','dao']},{letters:['k','n','j','i','g','a'],words:['knjiga','igra','njega','jag','kraj']}],
+  me:[{letters:['d','o','m','a'],words:['dom','do','od','moda','oda','dam']},{letters:['s','u','n','c','e'],words:['sunce','sve','sen','nese','cene']},{letters:['v','o','d','a'],words:['voda','do','od']},{letters:['m','a','j','k','a'],words:['majka','jama','mak','kaj']}],
   en:[{letters:['s','t','a','r','e'],words:['star','rate','tear','east','eat','tea','are','ear','art','rat','tar','rest','seat']},{letters:['h','o','u','s','e'],words:['house','use','she','shoe','hose','see']},{letters:['p','l','a','n','e','t'],words:['planet','plane','panel','late','tape','petal','leap']},{letters:['b','r','i','d','g','e'],words:['bridge','bird','bride','ride','grid','dire']}],
-  it:[{letters:['m','a','r','e'],words:['mare','era','arme']},{letters:['c','a','s','a'],words:['casa','asa','saca']},{letters:['l','i','b','r','o'],words:['libro','birlo','loro','olio','bio']},{letters:['s','o','l','e'],words:['sole','sale','solo','eso']}]
+  it:[{letters:['m','a','r','e'],words:['mare','era','arme']},{letters:['c','a','s','a'],words:['casa','asa','saca']},{letters:['l','i','b','r','o'],words:['libro','birlo','loro','olio','bio']},{letters:['s','o','l','e'],words:['sole','sale','solo','se','lo','le']}]
  };
  const lang=selectedGameLang||'me',sets=bank[lang]||bank.me;
  let candidates=sets.filter(set=>{const key=lang+'|'+set.letters.slice().sort().join('');return !v26.usedLetterSets.includes(key)&&set.words.some(w=>!v26.usedLetterWords.includes(lang+'|'+w))});
@@ -585,7 +585,7 @@ function v26LettersGame(){
  };
 }
 function v26MaybeLanguageSurprise(){
- if(role!=='son'||activeSection!=='games'||$('daily-overlay').style.display!=='none'||$('v26-reward-popup').classList.contains('show'))return;
+ const daily=$('daily-overlay');if(role!=='son'||activeSection!=='games'||(daily&&daily.style.display&&daily.style.display!=='none')||$('v26-reward-popup').classList.contains('show'))return;
  const last=Number(v26.lastLanguageSurpriseRound||0),current=Number(completedRounds||0);
  if(current-last<3||Math.random()>.32)return;
  v26.lastLanguageSurpriseRound=current;save();
