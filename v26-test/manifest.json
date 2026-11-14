@@ -1,0 +1,22 @@
+{
+  "name": "Копилка призов — версия 26 (тест)",
+  "short_name": "Копилка v26",
+  "description": "Тестовая копия: учёба, цивилизация и секретные призы",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "../icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
