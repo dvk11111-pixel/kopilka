@@ -356,6 +356,7 @@ function v26BuildMessage(){
  if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)<=now))return 'Временные 24 часа закончились. Дождись решения папы. Можно отправить ему напоминание.';
  if(h&&h.noHomework)return 'На сегодня домашних заданий нет. Можно развивать цивилизацию!';
  if(tasks.some(t=>['submitted','revision'].includes(t.status)&&Number(t.expiresAt||0)>now))return 'Временный доступ к строительству действует до проверки папой.';
+ if(h&&h.subjects.some(s=>(h.tasks[s]||{}).status==='failed'))return 'Ты сообщил папе, что не выполнил задание. Дождись его решения.';
  if(h&&h.subjects.length)return 'Выполни и отправь хотя бы одно задание на сегодня. После отправки откроется временный доступ.';
  return 'Сначала выбери домашние задания на сегодня или попроси папу назначить их.';
 }
@@ -388,7 +389,7 @@ function v26RenderSon(){
   if(th&&th.subjects.length){out+='<div class="v26-task"><b>Задания на завтра · '+v26DateLabel(tomorrow)+'</b><div>'+th.subjects.map(subjectLabel).map(esc).join(', ')+'</div></div>'}
   out+='<div class="v26-task"><b>Папа ещё не назначил задания на сегодня.</b><div class="v26-status">Если папа забыл, выбери предметы, по которым есть домашняя работа. Папа проверит твой список.</div><div id="v26-self-subjects">'+subjects.map(s=>'<label class="v26-subject-check"><input type="checkbox" data-v26-self="'+esc(s)+'"> '+esc(subjectLabel(s))+'</label>').join('')+'</div><button class="primary" id="v26-self-send">Отправить папе</button></div>';
  }
- const past=Object.keys(v26.homework).filter(k=>k<day&&v26.homework[k]&&!v26.homework[k].noHomework&&(v26.homework[k].subjects||[]).some(s=>['assigned','rejected'].includes((v26.homework[k].tasks[s]||{}).status||'assigned'))).sort();if(past.length){out+='<h3>Восстановить задания за дни без телефона</h3><p class="tiny">Если телефон был недоступен, отметь прошлые задания здесь. Пропущенные дни не накапливают штрафы.</p>';past.forEach(k=>{const h0=v26.homework[k];h0.tasks=h0.tasks||{};h0.subjects.forEach(s=>{const t=h0.tasks[s]||{status:'assigned'};if(['assigned','rejected'].includes(t.status||'assigned'))out+='<div class="v26-task"><b>'+v26DateLabel(k)+' · '+esc(subjectLabel(s))+'</b><div class="v26-task-actions"><button class="primary" data-v26-retro-done="'+esc(k+'|'+s)+'">Сделал</button><button class="secondary" data-v26-retro-notdone="'+esc(k+'|'+s)+'">Не сделал</button></div></div>'})})}
+ const past=Object.keys(v26.homework).filter(k=>k<day&&v26.homework[k]&&!v26.homework[k].noHomework&&(v26.homework[k].subjects||[]).some(s=>['assigned','rejected'].includes(((v26.homework[k].tasks||{})[s]||{}).status||'assigned'))).sort();if(past.length){out+='<h3>Восстановить задания за дни без телефона</h3><p class="tiny">Если телефон был недоступен, отметь прошлые задания здесь. Пропущенные дни не накапливают штрафы.</p>';past.forEach(k=>{const h0=v26.homework[k];h0.tasks=h0.tasks||{};h0.subjects.forEach(s=>{const t=h0.tasks[s]||{status:'assigned'};if(['assigned','rejected'].includes(t.status||'assigned'))out+='<div class="v26-task"><b>'+v26DateLabel(k)+' · '+esc(subjectLabel(s))+'</b><div class="v26-task-actions"><button class="primary" data-v26-retro-done="'+esc(k+'|'+s)+'">Сделал</button><button class="secondary" data-v26-retro-notdone="'+esc(k+'|'+s)+'">Не сделал</button></div></div>'})})}
  const access=v26CanBuild();
  if(!access)out+='<div class="v26-lock">🔒 <b>Строительство пока закрыто</b><div class="v26-status">'+esc(v26BuildMessage())+'</div></div>';
  else out+='<div class="v26-task">🏗️ <b>Строительство открыто!</b><div class="v26-status">'+esc(v26BuildMessage())+'</div></div>';
@@ -441,9 +442,9 @@ function v26SonEvents(){
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.v26Self!==undefined){const s=b.dataset.v26Self;v26.selfDraft[s]=!v26.selfDraft[s];b.querySelector('input').checked=v26.selfDraft[s];return}
  if(b.id==='v26-self-send'){const chosen=Object.keys(v26.selfDraft).filter(s=>v26.selfDraft[s]);if(!chosen.length){v26OpenReward('📚','Выбери предметы','Отметь хотя бы один предмет, по которому есть домашнее задание.');return}const h=v26Homework(todayKey());h.subjects=chosen;h.noHomework=false;chosen.forEach(s=>{h.tasks[s]={status:'assigned',self:true}});v26.selfDraft={};save();v26Render();return}
- if(b.dataset.v26Done){const subject=b.dataset.v26Done;v26Submit(todayKey(),subject,!!v26.homework[todayKey()]?.tasks[subject]?.self);v26OpenReward('📚','Домашнее задание отправлено!','Папа проверит работу в тетради или учебнике. Временный доступ к строительству открыт на 24 часа.');return}
+ if(b.dataset.v26Done){const subject=b.dataset.v26Done;v26Submit(todayKey(),subject,!!v26.homework[todayKey()]?.tasks?.[subject]?.self);v26OpenReward('📚','Домашнее задание отправлено!','Папа проверит работу в тетради или учебнике. Временный доступ к строительству открыт на 24 часа.');return}
  if(b.dataset.v26Notdone){v26PromptNotDone(b.dataset.v26Notdone,todayKey());return}
- if(b.dataset.v26RetroDone){const parts=b.dataset.v26RetroDone.split('|'),day=parts[0],subject=parts[1];v26Submit(day,subject,!!v26.homework[day]?.tasks[subject]?.self);v26OpenReward('📚','Прошлое задание отправлено','Папа проверит работу в тетради или учебнике.');return}
+ if(b.dataset.v26RetroDone){const parts=b.dataset.v26RetroDone.split('|'),day=parts[0],subject=parts[1];v26Submit(day,subject,!!v26.homework[day]?.tasks?.[subject]?.self);v26OpenReward('📚','Прошлое задание отправлено','Папа проверит работу в тетради или учебнике.');return}
  if(b.dataset.v26RetroNotdone){const parts=b.dataset.v26RetroNotdone.split('|');v26PromptNotDone(parts[1],parts[0]);return}
  if(b.dataset.v26Retry){v26Submit(todayKey(),b.dataset.v26Retry,true);v26OpenReward('✏️','Исправление отправлено','Папа снова проверит работу. Срок временного доступа не продлевается.');return}
  if(b.dataset.v26Remind){const h=v26Homework(todayKey()),t=h.tasks[b.dataset.v26Remind];if(!t)return;if(!t.reminderUsed){t.expiresAt=Date.now()+86400000;v26.tempDeadline=Math.max(v26.tempDeadline||0,t.expiresAt);t.reminderUsed=true}save();v26Render();v26OpenReward('🔔','Напоминание отправлено','Первое напоминание добавляет 24 часа. Следующие напоминания срок не продлевают.');return}
@@ -492,15 +493,28 @@ function v26LettersGame(){
   closeDaily();v26OpenReward('🔤','Отличная работа!','Ты составил '+found.length+' слов: '+found.join(', ')+'. За каждое новое слово начислен опыт.');
  };
 }
+let v26MiniTimer=null;
+function v26AwardSpecialTicket(){
+ if(v26HasSubmitted(todayKey())){v26.specialTickets++;v26OpenReward('🎟️','Ты выиграл специальный билет!','Он подходит только для секретных призов.')}
+ else{v26.pendingSpecial++;v26OpenReward('🎁','Секретная награда ждёт','Ты выиграл мини-игру. Специальный билет будет выдан после подтверждения домашнего задания.')}
+ save();v26Render();
+}
 function v26MiniGame(force){
  const day=todayKey();if(v26.miniDay===day&&v26.miniPlayed){v26OpenReward('⏳','Сюрприз уже был сегодня','Новая случайная мини-игра появится в другой день.');return}
  v26.miniDay=day;v26.miniPlayed=true;save();
- const secretWords={me:['more','knjiga','sunce','škola'],en:['apple','house','water','green'],it:['casa','libro','acqua','sole']},w=(secretWords[selectedGameLang]||secretWords.me)[Math.floor(Math.random()*4)];
- $('v26-mini-icon').textContent='🎲';$('v26-mini-title').textContent='Секретное слово!';
- $('v26-mini-body').innerHTML='<p>Угадай слово по подсказке. Первая буква: <b>'+esc(w[0])+'</b>, букв: '+w.length+'.</p><input class="field" id="v26-mini-answer" placeholder="Твой ответ"><button class="primary" id="v26-mini-check">Проверить</button>';
+ $('v26-mini-icon').textContent='🎲';$('v26-mini-title').textContent='Секретная мини-игра!';
  $('v26-mini-popup').classList.add('show');
- $('v26-mini-decline').onclick=()=>$('v26-mini-popup').classList.remove('show');
- $('v26-mini-check').onclick=()=>{const ok=$('v26-mini-answer').value.trim().toLocaleLowerCase()===w.toLocaleLowerCase();$('v26-mini-popup').classList.remove('show');if(!ok){v26OpenReward('🧩','Попробуй в следующий раз','Правильное слово: '+w+'. Новое испытание появится позже.');return}if(v26HasSubmitted(todayKey())){v26.specialTickets++;v26OpenReward('🎟️','Ты выиграл специальный билет!','Он подходит только для секретных призов.');}else{v26.pendingSpecial++;v26OpenReward('🎁','Секретная награда ждёт','Ты решил испытание! Специальный билет будет выдан после отправки домашнего задания.')}save();v26Render()};
+ $('v26-mini-decline').onclick=()=>{if(v26MiniTimer)clearTimeout(v26MiniTimer);v26MiniTimer=null;$('v26-mini-popup').classList.remove('show')};
+ if(Math.random()<.5){
+  const secretWords={me:['more','knjiga','sunce','škola'],en:['apple','house','water','green'],it:['casa','libro','acqua','sole']},w=(secretWords[selectedGameLang]||secretWords.me)[Math.floor(Math.random()*4)];
+  $('v26-mini-body').innerHTML='<p>Угадай слово по подсказке. Первая буква: <b>'+esc(w[0])+'</b>, букв: '+w.length+'.</p><input class="field" id="v26-mini-answer" placeholder="Твой ответ"><button class="primary" id="v26-mini-check">Проверить</button>';
+  $('v26-mini-check').onclick=()=>{const ok=$('v26-mini-answer').value.trim().toLocaleLowerCase()===w.toLocaleLowerCase();$('v26-mini-popup').classList.remove('show');if(!ok){v26OpenReward('🧩','Попробуй в следующий раз','Правильное слово: '+w+'. Новое испытание появится позже.');return}v26AwardSpecialTicket()};
+ }else{
+  let taps=0,done=false;
+  $('v26-mini-body').innerHTML='<p>🏁 Быстрая гонка! Нажми кнопку <b>10 раз за 7 секунд</b>.</p><div class="v26-streak" id="v26-race-count">0 / 10</div><button class="primary" id="v26-race-tap">СТАРТ!</button>';
+  v26MiniTimer=setTimeout(()=>{if(done)return;done=true;$('v26-mini-popup').classList.remove('show');v26OpenReward('🏁','Гонка окончена','Не успел в этот раз. Новое испытание появится позже.')},7000);
+  $('v26-race-tap').onclick=()=>{if(done)return;taps++;$('v26-race-count').textContent=taps+' / 10';if(taps>=10){done=true;clearTimeout(v26MiniTimer);v26MiniTimer=null;$('v26-mini-popup').classList.remove('show');v26AwardSpecialTicket()}};
+ }
 }
 function v26MaybeSurprise(){if(role!=='son'||v26.miniDay===todayKey())return;if(Math.random()<.18)setTimeout(()=>{if(!$('daily-overlay').style.display||$('daily-overlay').style.display==='none')v26MiniGame(false)},1800)}
 function v26Scratch(item){
