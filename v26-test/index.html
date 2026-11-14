@@ -390,7 +390,7 @@ function v26BuildMessage(){
  return 'Сначала выбери домашние задания на сегодня или попроси папу назначить их.';
 }
 function v26OpenReward(icon,title,message){const el=$('v26-reward-popup');if(!el)return;$('v26-reward-icon').textContent=icon;$('v26-reward-title').textContent=title;$('v26-reward-text').textContent=message;el.classList.add('show')}
-$('v26-reward-close').onclick=()=>$('v26-reward-popup').classList.remove('show');
+$('v26-reward-close').onclick=()=>{$('v26-reward-popup').classList.remove('show');v26MaybeLanguageSurprise()};
 function v26RefreshWorld(){const old=renderWorld;renderWorld=function(){old();if(!$('world-map'))return;document.querySelectorAll('[data-world-tile]').forEach(el=>{const i=Number(el.dataset.worldTile),item=worldState.buildings&&worldState.buildings[i];if(!item)return;const art={home:['🏠','🏡','🏘️'],garden:['🌳','🌴','🌺'],farm:['🌱','🌾','🚜'],workshop:['🛠️','⚒️','🏭'],shop:['🧺','🏪','🏬'],sawmill:['🪚','🪵','🏭'],school:['🏫','🏫','🎓'],stadium:['🏟️','🏆','🎉'],port:['🛶','⛵','🚢'],library:['📚','📖','🏛️'],lighthouse:['🗼','🌊','🚨'],castle:['🏰','🏯','👑'],museum:['🏛️','🗿','🏺'],observatory:['🔭','🌌','🪐'],monument:['🗿','🏛️','✨']};const a=art[item.id]||['🏗️','🏢','🏙️'];const span=document.createElement('span');span.className='v26-world-art';span.textContent=a[Math.max(0,Math.min(2,(item.level||1)-1))];el.replaceChildren(span);const small=document.createElement('small');small.textContent='ур. '+(item.level||1);el.appendChild(small)})}}
 v26RefreshWorld();
 function v26RenderParent(){
@@ -458,7 +458,7 @@ function v26RenderSon(){
 function v26Render(){v26RenderSon();v26RenderParent()}
 function v26SetTempAccess(day,subject){const h=v26Homework(day),t=h.tasks[subject];if(!v26.tempSnapshot)v26.tempSnapshot=v26Snapshot();if(!t.submittedAt)t.submittedAt=Date.now();if(!t.expiresAt)t.expiresAt=Date.now()+86400000;v26.tempStartedAt=v26.tempStartedAt||Date.now();v26.tempDeadline=Math.max(v26.tempDeadline||0,t.expiresAt)}
 function v26Submit(day,subject,self){const h=v26Homework(day);if(!h.subjects.includes(subject))h.subjects.push(subject);let t=h.tasks[subject]||{};const wasRejected=t.status==='rejected';t.status='submitted';t.self=!!self;t.submittedAt=Date.now();if(wasRejected){t.expiresAt=Date.now()+86400000;if(!v26.tempSnapshot)v26.tempSnapshot=v26Snapshot();v26.tempStartedAt=Date.now();v26.tempDeadline=t.expiresAt;v26.reminderUsed=false}else if(!t.expiresAt){t.expiresAt=Date.now()+86400000;v26SetTempAccess(day,subject)}h.tasks[subject]=t;v26.pendingSpecial=Number(v26.pendingSpecial||0);save();v26Render();renderWorld();renderParentTools()}
-function v26ReviewResolve(day,subject,action,comment){const h=v26Homework(day),t=h.tasks[subject]||{};t.comment=comment||t.comment||'';if(action==='confirm'){const realSubmission=['submitted','revision'].includes(t.status);t.status='confirmed';t.confirmedAt=Date.now();v26.confirmedAccessDate=todayKey();if(realSubmission){v26.confirmedHomeworkDate=todayKey();v26.accessReason='homework'}if(realSubmission&&v26.pendingSpecial){v26.specialTickets+=v26.pendingSpecial;v26.pendingSpecial=0;v26OpenReward('🎟️','Специальные билеты выданы!','Папа подтвердил домашнее задание. Теперь доступны секретные призы.')}v26.tempSnapshot=null;v26.tempDeadline=0;v26.tempStartedAt=0;v26.reminderUsed=false}else if(action==='fix'){t.status='revision';t.comment=comment||'Пожалуйста, исправь задание.'}else{t.status='rejected';t.comment=comment||'Задание нужно выполнить заново.';const other=Object.keys(v26.homework).some(otherDay=>(v26.homework[otherDay].subjects||[]).some(s=>(otherDay!==day||s!==subject)&&((v26.homework[otherDay].tasks[s]||{}).status==='confirmed'||(['submitted','revision'].includes((v26.homework[otherDay].tasks[s]||{}).status)&&Number((v26.homework[otherDay].tasks[s]||{}).expiresAt||0)>Date.now()))));if(!other)v26Rollback()}save();v26Render();renderWorld();renderParentTools()}
+function v26ReviewResolve(day,subject,action,comment){const h=v26Homework(day),t=h.tasks[subject]||{};t.comment=comment||t.comment||'';if(action==='confirm'){const realSubmission=['submitted','revision'].includes(t.status);t.status='confirmed';t.confirmedAt=Date.now();v26.confirmedAccessDate=todayKey();if(realSubmission){v26.confirmedHomeworkDate=todayKey();v26.accessReason='homework';addWorldProgress(2,2)}if(realSubmission&&v26.pendingSpecial){v26.specialTickets+=v26.pendingSpecial;v26.pendingSpecial=0;v26OpenReward('🎟️','Специальные билеты выданы!','Папа подтвердил домашнее задание. Теперь доступны секретные призы.')}v26.tempSnapshot=null;v26.tempDeadline=0;v26.tempStartedAt=0;v26.reminderUsed=false}else if(action==='fix'){t.status='revision';t.comment=comment||'Пожалуйста, исправь задание.'}else{t.status='rejected';t.comment=comment||'Задание нужно выполнить заново.';const other=Object.keys(v26.homework).some(otherDay=>(v26.homework[otherDay].subjects||[]).some(s=>(otherDay!==day||s!==subject)&&((v26.homework[otherDay].tasks[s]||{}).status==='confirmed'||(['submitted','revision'].includes((v26.homework[otherDay].tasks[s]||{}).status)&&Number((v26.homework[otherDay].tasks[s]||{}).expiresAt||0)>Date.now()))));if(!other)v26Rollback()}save();v26Render();renderWorld();renderParentTools()}
 function v26RecalculateStreak(){
  const previous=Number(v26.streak)||0;let count=0,paused=false;
  Object.keys(v26.attendance).sort().forEach(day=>{
@@ -477,7 +477,7 @@ function v26RecalculateStreak(){
 function v26AttendanceConfirm(day){
  const a=v26.attendance[day]||{};if(a.status==='confirmed')return;
  a.status='confirmed';a.confirmedAt=Date.now();v26.attendance[day]=a;
- worldState.energy=(Number(worldState.energy)||0)+1;
+ addWorldProgress(1,1);
  const bonus=v26RecalculateStreak();
  save();renderWorld();v26Render();
  v26OpenReward('🏫','Школьный день засчитан!','Папа подтвердил посещение. +1 энергия'+(bonus?' и бонус серии +'+bonus+' энергии!':'')+'. Текущая серия: '+v26.streak+' учебных дней.');
@@ -507,7 +507,7 @@ function v26AutoCheckin(){
 function v26ShowTomorrowHomework(){const day=todayKey(),tomorrow=v26Tomorrow(),h=v26.homework[tomorrow];if(new Date().getHours()<17||v26.homeworkPromptDate===day||!h||!h.subjects.length)return;openDaily('<h2>📚 Домашние задания на завтра</h2><p style="text-align:center">'+v26DateLabel(tomorrow)+'</p><div class="v26-task">'+h.subjects.map(s=>esc(subjectLabel(s))).join('<br>')+'</div><p class="tiny">Выполняй задания в тетради. Отметить выполнение можно завтра.</p><button class="primary" id="v26-tomorrow-close">Razumijem</button>');$('v26-tomorrow-close').onclick=()=>{v26.homeworkPromptDate=day;save();closeDaily()};}
 function v26CatchupAttendance(day,present){if(!day||day>todayKey())return;if(v26.attendance[day]){v26OpenReward('📅','Отметка уже существует','Эту дату уже отправили папе или подтвердили. Повторная отметка не начисляет награду.');return}if(!v26IsSchoolDay(day)){v26OpenReward('📅','В этот день занятий не было','Выходные и отмеченные дни без занятий не требуют отметки.');return}v26.attendance[day]={status:present?'pending':'absent',retroactive:true,created:Date.now()};save();v26Render();renderParentTools();v26OpenReward('📅','Отметка отправлена папе','Папа подтвердит посещение или укажет, что причина отсутствия уважительная.');}
 function v26PromptNotDone(subject,day=todayKey()){const reasons=['Nijesam razumio zadatak','Nijesam stigao','Nijesam imao mogućnosti da uradim','Bilo je preteško','Drugi razlog'];openDaily('<h2>Zašto nijesi uradio zadatak?</h2>'+reasons.map((r,i)=>'<label class="v26-subject-check" style="display:flex;margin:7px 0"><input type="radio" name="v26-reason" value="'+esc(r)+'" '+(i===0?'checked':'')+'> '+esc(r)+'</label>').join('')+'<input class="field" id="v26-reason-other" placeholder="Ako želiš, objasni razlog"><button class="primary" id="v26-reason-send">Pošalji tati</button>');$('v26-reason-send').onclick=()=>{const r=document.querySelector('input[name="v26-reason"]:checked')?.value||reasons[0],detail=$('v26-reason-other').value.trim(),h=v26Homework(day);h.tasks[subject]={status:'failed',reason:r+(detail?' — '+detail:''),self:!h.subjects.includes(subject)};if(!h.subjects.includes(subject))h.subjects.push(subject);save();closeDaily();v26Render();renderParentTools();};}
-function v26RenderWorldGate(){const b=$('world-build');if(!b)return;const old=b.onclick;b.onclick=function(e){if(!v26CanBuild()){const msg=v26BuildMessage();$('world-build-message').textContent=msg;v26OpenReward('📚','Сначала учёба!',msg);return}if(typeof old==='function')old.call(this,e);renderWorld()}}
+function v26RenderWorldGate(){const b=$('world-build');if(!b)return;const old=b.onclick;b.onclick=function(e){const idx=worldState.selected,isUnlock=!worldState.unlocked.includes(idx)&&worldState.availablePlots.includes(idx);if(isUnlock){if(typeof old==='function')old.call(this,e);renderWorld();return}if(!v26CanBuild()){const msg=v26BuildMessage();$('world-build-message').textContent=msg;v26OpenReward('📚','Сначала учёба!',msg);return}if(typeof old==='function')old.call(this,e);renderWorld()}}
 function v26ParentEvents(){
  const root=$('v26-parent-panel');if(!root)return;
  root.onclick=e=>{
@@ -585,11 +585,11 @@ function v26LettersGame(){
  };
 }
 function v26MaybeLanguageSurprise(){
- if(role!=='son'||!round||$('daily-overlay').style.display!=='none')return;
- const last=Number(v26.lastLanguageSurpriseRound||0),current=Number(roundNumber||0);
+ if(role!=='son'||activeSection!=='games'||$('daily-overlay').style.display!=='none'||$('v26-reward-popup').classList.contains('show'))return;
+ const last=Number(v26.lastLanguageSurpriseRound||0),current=Number(completedRounds||0);
  if(current-last<3||Math.random()>.32)return;
  v26.lastLanguageSurpriseRound=current;save();
- setTimeout(()=>{if(role==='son'&&$('daily-overlay').style.display==='none'){if(Math.random()<.5)v26SentenceGame();else v26LettersGame()}},650);
+ if(Math.random()<.5)v26SentenceGame();else v26LettersGame();
 }
 let v26MiniTimer=null;
 function v26AwardSpecialTicket(){
@@ -638,7 +638,7 @@ function v26Install(){
  startDailyFlow=function(){v26AutoCheckin()};
  v26ParentEvents();v26SonEvents();v26Render();v26RenderWorldGate();
  const oldFinish=finishRound;
- finishRound=function(){oldFinish();v26MaybeLanguageSurprise();if(gamePoints>=10){const n=Math.floor(gamePoints/10);gamePoints-=n*10;const awarded=awardTickets(n);queueCollection(n,'game',awarded);v26OpenReward('🎟️','Десять раундов пройдены!','Ты получил '+n+' обычный билет за завершённую серию.');}else v26OpenReward('⭐','Раунд пройден!','Ты получил игровой балл, опыт и энергию. Продолжай — каждые десять раундов дают билет.');save();renderGameStats();};
+ finishRound=function(){const clean=!!round&&round.errors===0;oldFinish();addWorldProgress(clean?2:1,1);if(gamePoints>=10){const n=Math.floor(gamePoints/10);gamePoints-=n*10;const awarded=awardTickets(n);queueCollection(n,'game',awarded);v26OpenReward('🎟️','Десять раундов пройдены!','Ты получил '+n+' обычный билет за завершённую серию.');}else v26OpenReward('⭐','Раунд пройден!','Ты получил игровой балл, опыт и энергию. Продолжай — каждые десять раундов дают билет.');save();renderGameStats();};
  const oldFail=failRound;
  failRound=function(){const num=round?.number||roundNumber;round=null;gamePoints=0;cleanStreak=0;selectedWord=null;wrongLock=false;hintPairId=null;save();renderGameStats();renderLanguagePicker();$('game-message').textContent='Две ошибки в раунде '+num+'. Попытка из десяти раундов начнётся сначала. Игровые баллы этой попытки сброшены; ранее заработанные билеты, деньги и награды сохранены.';$('game-stage').innerHTML='<div class="panel" style="text-align:center;background:#fff7ed"><div style="font-size:54px">💛</div><b>Попробуем сначала</b><p>Две ошибки — начало новой серии из десяти раундов. Все прежние награды сохранены.</p></div>';v26OpenReward('💛','Начнём новую попытку','Две ошибки завершили серию. Пройди десять раундов заново. Ранее заработанные награды не потеряны.');};
  const oldWorldEvent=showWorldEvent;
